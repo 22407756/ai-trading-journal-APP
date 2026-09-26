@@ -5,6 +5,7 @@ interface HeaderProps {
   onNavigate: (view: string) => void;
   deviceMode: 'mobile' | 'desktop';
   onToggleDeviceMode: () => void;
+  onOpenReadme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -12,6 +13,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   deviceMode,
   onToggleDeviceMode,
+  onOpenReadme,
 }) => {
   const isBackAllowed = currentView === 'log-trade';
 
@@ -53,7 +55,19 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right tools and profile */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* README docs button */}
+          {onOpenReadme && (
+            <button
+              onClick={onOpenReadme}
+              title="View Documentation & Architecture (README.md)"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-primary hover:text-on-surface font-tag-mono text-[11px] transition-colors active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[15px]">menu_book</span>
+              <span className="hidden sm:inline">Docs</span>
+            </button>
+          )}
+
           {/* Device mode toggle: Switch between Mobile Shell and Desktop Institutional Terminal */}
           <button
             onClick={onToggleDeviceMode}

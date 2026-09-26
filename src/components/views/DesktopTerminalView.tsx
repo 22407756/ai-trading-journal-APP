@@ -7,6 +7,7 @@ interface DesktopTerminalViewProps {
   onOpenLogTrade: () => void;
   onNavigateView: (view: string) => void;
   onRunDebrief: () => void;
+  onOpenReadme?: () => void;
 }
 
 export const DesktopTerminalView: React.FC<DesktopTerminalViewProps> = ({
@@ -14,6 +15,7 @@ export const DesktopTerminalView: React.FC<DesktopTerminalViewProps> = ({
   onOpenLogTrade,
   onNavigateView,
   onRunDebrief,
+  onOpenReadme,
 }) => {
   const [activeNav, setActiveNav] = useState('dashboard');
   const [selectedTf, setSelectedTf] = useState('3M');
@@ -148,6 +150,17 @@ export const DesktopTerminalView: React.FC<DesktopTerminalViewProps> = ({
           </div>
 
           <div className="flex items-center gap-space-md">
+            {onOpenReadme && (
+              <button
+                type="button"
+                onClick={onOpenReadme}
+                className="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary hover:text-on-surface font-tag-mono text-xs font-semibold flex items-center gap-1.5 transition-colors border border-surface-container-highest/40"
+              >
+                <span className="material-symbols-outlined text-[16px]">menu_book</span>
+                <span>Docs / README</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenLogTrade}
               className="px-3.5 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-sm font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform"

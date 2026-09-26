@@ -11,6 +11,7 @@ import { RiskProfileView } from './components/views/RiskProfileView';
 import { DesktopTerminalView } from './components/views/DesktopTerminalView';
 import { ExportModal } from './components/modals/ExportModal';
 import { NeuralDebriefModal } from './components/modals/NeuralDebriefModal';
+import { ReadmeModal } from './components/modals/ReadmeModal';
 
 export default function App() {
   const [trades, setTrades] = useState<Trade[]>(INITIAL_TRADES);
@@ -18,6 +19,7 @@ export default function App() {
   const [deviceMode, setDeviceMode] = useState<'mobile' | 'desktop'>('mobile');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isDebriefOpen, setIsDebriefOpen] = useState(false);
+  const [isReadmeOpen, setIsReadmeOpen] = useState(false);
 
   const handleSaveTrade = (newTrade: Trade) => {
     setTrades([newTrade, ...trades]);
@@ -60,6 +62,7 @@ export default function App() {
             setCurrentView(view);
           }}
           onRunDebrief={() => setIsDebriefOpen(true)}
+          onOpenReadme={() => setIsReadmeOpen(true)}
         />
       ) : (
         // Mobile Tab & Stack Mode (Images 4, 6, 8, 10 & HTML 1, 2, 3, 4)
@@ -69,6 +72,7 @@ export default function App() {
             onNavigate={(view) => setCurrentView(view)}
             deviceMode={deviceMode}
             onToggleDeviceMode={handleToggleDeviceMode}
+            onOpenReadme={() => setIsReadmeOpen(true)}
           />
 
           <main className="flex-1 w-full pt-20 pb-28 px-4 max-w-md mx-auto">
@@ -124,6 +128,12 @@ export default function App() {
         isOpen={isDebriefOpen}
         onClose={() => setIsDebriefOpen(false)}
         trades={trades}
+      />
+
+      {/* In-App Readme Documentation Modal */}
+      <ReadmeModal
+        isOpen={isReadmeOpen}
+        onClose={() => setIsReadmeOpen(false)}
       />
     </div>
   );
