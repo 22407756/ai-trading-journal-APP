@@ -1,0 +1,6 @@
+{
+  "name": "Trading Journal AI - Institutional Behavioral Terminal",
+  "description": "Institutional trading journal and behavioral audit platform with real-time trade calculus, equity trajectory, cognitive compliance index, and execution edge analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
