@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile authenticated via Firebase Auth with subscription tier",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "Trader email address" },
+        "displayName": { "type": "string", "description": "Trader display name" },
+        "photoURL": { "type": "string", "description": "Trader avatar URL" },
+        "subscriptionTier": { "type": "string", "enum": ["free", "pro", "institutional"], "description": "Subscription plan tier" },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "trialing", "canceled"], "description": "Subscription status" },
+        "billingCycle": { "type": "string", "enum": ["monthly", "yearly"], "description": "Billing cadence" },
+        "subscriptionExpiresAt": { "type": "string", "description": "Expiration date ISO timestamp" },
+        "planPrice": { "type": "number", "description": "Plan price per billing cycle" },
+        "chartScansUsed": { "type": "number", "description": "Number of chart screenshot AI analyses used" },
+        "scansPurchased": { "type": "number", "description": "Total extra picture scans bought (e.g. +10 for 5 EUR)" },
+        "totalScansAllowed": { "type": "number", "description": "Total scans permitted (4 initial free + scansPurchased)" },
+        "payoutRecipient": { "type": "string", "description": "Payout recipient email (saraoussoussou2006@gmail.com)" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of user creation" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "User picture credits pack payment and owner payout settlement record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique transaction payment ID" },
+        "userId": { "type": "string", "description": "Payer user UID" },
+        "payerEmail": { "type": "string", "format": "email", "description": "Payer email address" },
+        "amount": { "type": "number", "description": "Euro amount paid (e.g. 5)" },
+        "currency": { "type": "string", "description": "Currency code (EUR, MAD, USD)" },
+        "amountMAD": { "type": "number", "description": "Amount in Moroccan Dirhams (e.g. 55 MAD)" },
+        "scansAdded": { "type": "number", "description": "Number of picture scans added (e.g. 10)" },
+        "packId": { "type": "string", "description": "ID of the purchased pack (e.g. pack_10)" },
+        "recipientEmail": { "type": "string", "format": "email", "description": "Beneficiary receiving payment (saraoussoussou2006@gmail.com)" },
+        "recipientName": { "type": "string", "description": "Beneficiary name (Sara Oussoussou)" },
+        "paymentMethod": { "type": "string", "enum": ["card", "moroccan_bank", "crypto", "payment_link"], "description": "Method of payment" },
+        "transactionId": { "type": "string", "description": "Virement RIB ref, Gateway or blockchain ID" },
+        "status": { "type": "string", "enum": ["completed", "pending"], "description": "Payment settlement status" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of payment" }
+      },
+      "required": ["id", "userId", "amount", "recipientEmail", "status"]
+    },
+    "Trade": {
+      "title": "Trade",
+      "description": "Logged trade execution and psychological reflection record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique trade ID" },
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "symbol": { "type": "string", "description": "Asset symbol (e.g. NVDA, BTC/USDT)" },
+        "exchange": { "type": "string", "description": "Exchange identifier" },
+        "sector": { "type": "string", "enum": ["Crypto", "Stocks", "Forex", "Futures"], "description": "Market sector" },
+        "side": { "type": "string", "enum": ["LONG", "SHORT"], "description": "Trade direction" },
+        "status": { "type": "string", "enum": ["Closed", "Open"], "description": "Trade lifecycle state" },
+        "entryPrice": { "type": "number", "description": "Entry execution price" },
+        "stopLoss": { "type": "number", "description": "Predetermined stop-loss price" },
+        "targetPrice": { "type": "number", "description": "Profit target price" },
+        "exitPrice": { "type": "number", "description": "Actual exit execution price" },
+        "positionSize": { "type": "string", "description": "Readable position size" },
+        "shares": { "type": "number", "description": "Numeric share or contract amount" },
+        "leverage": { "type": "string", "description": "Leverage or margin description" },
+        "session": { "type": "string", "enum": ["Asian", "London", "New York", "Overlap"], "description": "Trading market session" },
+        "strategy": { "type": "string", "description": "Playbook setup name" },
+        "pnl": { "type": "number", "description": "Realized dollar P&L" },
+        "pnlPercent": { "type": "number", "description": "Realized percent return" },
+        "rMultiple": { "type": "number", "description": "Realized R-Multiple ratio" },
+        "riskReward": { "type": "string", "description": "Risk to reward ratio formatted" },
+        "riskTaken": { "type": "number", "description": "Dollar risk taken" },
+        "riskPercent": { "type": "number", "description": "Percentage portfolio risk" },
+        "date": { "type": "string", "description": "Date label" },
+        "time": { "type": "string", "description": "Time label" },
+        "preEntryBias": { "type": "string", "description": "Cognitive setup reasoning before entry" },
+        "executionDiscipline": { "type": "string", "description": "Discipline and emotion during trade" },
+        "postTradeReview": { "type": "string", "description": "Review and learning takeaways" },
+        "tags": { "type": "array", "description": "Behavioral tags" },
+        "executionQuality": { "type": "string", "description": "Quality tier" },
+        "detectedConfluence": { "type": "string", "description": "AI detected confluence" },
+        "screenshotUrl": { "type": "string", "description": "Uploaded or linked chart screenshot URL" },
+        "createdAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["id", "userId", "symbol", "side", "entryPrice", "pnl"]
+    },
+    "FCMToken": {
+      "title": "FCMToken",
+      "description": "User Firebase Cloud Messaging registration token for push notifications",
+      "type": "object",
+      "properties": {
+        "token": { "type": "string", "description": "FCM registration token string" },
+        "platform": { "type": "string", "description": "Client platform (web/android)" },
+        "userAgent": { "type": "string", "description": "Client browser user agent" },
+        "updatedAt": { "type": "string", "description": "Timestamp of token update" }
+      },
+      "required": ["token"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "User trade alert notification history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique alert ID" },
+        "userId": { "type": "string", "description": "Target user UID" },
+        "asset": { "type": "string", "description": "Asset symbol (e.g. BTC/USD)" },
+        "signal": { "type": "string", "description": "STRONG_BUY, STRONG_SELL" },
+        "confidence": { "type": "number", "description": "Signal confidence score 0-100" },
+        "price": { "type": "number", "description": "Trigger price" },
+        "entryZone": { "type": "string", "description": "Recommended entry price zone" },
+        "stopLoss": { "type": "string", "description": "Invalidation stop loss" },
+        "takeProfit": { "type": "string", "description": "Profit target" },
+        "timestamp": { "type": "string", "description": "ISO UTC timestamp" }
+      },
+      "required": ["id", "userId", "asset", "signal", "price", "timestamp"]
+    },
+    "Signal": {
+      "title": "Signal",
+      "description": "Market signal logged for backtesting and historical auditing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique signal ID" },
+        "asset": { "type": "string", "description": "Asset symbol" },
+        "signal": { "type": "string", "description": "Signal type" },
+        "confidence": { "type": "number", "description": "Confidence percentage" },
+        "price": { "type": "number", "description": "Market price at time of signal" },
+        "timestamp": { "type": "string", "description": "ISO UTC timestamp" }
+      },
+      "required": ["id", "asset", "signal", "confidence", "price", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Trader profile documents"
+    },
+    "/users/{userId}/trades/{tradeId}": {
+      "schema": { "$ref": "#/entities/Trade" },
+      "description": "User specific logged execution ledger"
+    },
+    "/users/{userId}/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "User subscription payment records and receipts routed to owner"
+    },
+    "/users/{userId}/fcmTokens/{tokenId}": {
+      "schema": { "$ref": "#/entities/FCMToken" },
+      "description": "User push notification registration tokens"
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/Alert" },
+      "description": "User trade alert notifications"
+    },
+    "/signals/{signalId}": {
+      "schema": { "$ref": "#/entities/Signal" },
+      "description": "Historical market signals preserved for backtesting"
+    }
+  }
+}

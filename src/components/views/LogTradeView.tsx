@@ -1,22 +1,38 @@
-import React, { useState, useMemo } from 'react';
-import { MarketSector, TradeSide, SessionName, Trade } from '../../types/trade';
+import React, { useState, useMemo, useEffect } from 'react';
+import { MarketSector, TradeSide, SessionName, Trade, SubscriptionTier } from '../../types/trade';
+import { useAuth } from '../../context/AuthContext';
+import { Crown, AlertCircle } from 'lucide-react';
 
 interface LogTradeViewProps {
   onSaveTrade: (trade: Trade) => void;
   onCancel: () => void;
+  onOpenSubscription?: (tier?: SubscriptionTier, reason?: string) => void;
+  onOpenChartVision?: () => void;
+  initialValues?: Partial<Trade> | null;
 }
 
-export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCancel }) => {
-  const [sector, setSector] = useState<MarketSector>('Stocks');
-  const [symbol, setSymbol] = useState<string>('NVDA');
-  const [exchange, setExchange] = useState<string>('NASDAQ');
-  const [side, setSide] = useState<TradeSide>('LONG');
+export const LogTradeView: React.FC<LogTradeViewProps> = ({
+  onSaveTrade,
+  onCancel,
+  onOpenSubscription,
+  onOpenChartVision,
+  initialValues,
+}) => {
+  const { canAddTrade, tradesRemainingForFree, isProOrHigher, chartScansRemaining, canScanChart } = useAuth();
+  const [sector, setSector] = useState<MarketSector>(initialValues?.sector || 'Stocks');
+  const [symbol, setSymbol] = useState<string>(initialValues?.symbol || 'NVDA');
+  const [exchange, setExchange] = useState<string>(initialValues?.exchange || 'NASDAQ');
+  const [side, setSide] = useState<TradeSide>(
+    initialValues?.side === 'SHORT' || initialValues?.side === ('Short' as any)
+      ? 'SHORT'
+      : 'LONG'
+  );
   
   // Numerical values for real-time calculus
-  const [entryPrice, setEntryPrice] = useState<number>(142.5);
-  const [stopLoss, setStopLoss] = useState<number>(139.5);
-  const [targetPrice, setTargetPrice] = useState<number>(150.9);
-  const [exitPrice, setExitPrice] = useState<number>(150.9);
+  const [entryPrice, setEntryPrice] = useState<number>(initialValues?.entryPrice || 142.5);
+  const [stopLoss, setStopLoss] = useState<number>(initialValues?.stopLoss || 139.5);
+  const [targetPrice, setTargetPrice] = useState<number>(initialValues?.targetPrice || 150.9);
+  const [exitPrice, setExitPrice] = useState<number>(initialValues?.exitPrice || 150.9);
   const [positionSize, setPositionSize] = useState<string>('100 shares');
   const [sharesCount, setSharesCount] = useState<number>(100);
   const [leverage, setLeverage] = useState<string>('1x (Spot / Cash)');
@@ -25,6 +41,7 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
 
   // Psychological & Cognitive Audit
   const [preEntryBias, setPreEntryBias] = useState<string>(
+    initialValues?.preEntryBias ||
     'Waited for 15m liquidity sweep below 140 support, 200 EMA confluence.'
   );
   const [executionDiscipline, setExecutionDiscipline] = useState<string>(
@@ -43,11 +60,36 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
   // Detected confluence
   const [isEditingConfluence, setIsEditingConfluence] = useState(false);
   const [confluenceText, setConfluenceText] = useState(
-    '15-min Bullish Hammer at Support with high volume liquidity absorption.'
+    initialValues?.detectedConfluence ||
+    (initialValues?.preEntryBias ? 'AI Chart Analysis: ' + initialValues.preEntryBias.split('\n')[0] : '15-min Bullish Hammer at Support with high volume liquidity absorption.')
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
+
+  // Sync state whenever initialValues change (e.g. passed from Chart Vision AI)
+  useEffect(() => {
+    if (initialValues) {
+      if (initialValues.symbol) setSymbol(initialValues.symbol);
+      if (initialValues.sector) setSector(initialValues.sector);
+      if (initialValues.exchange) setExchange(initialValues.exchange);
+      if (initialValues.side) {
+        setSide(
+          initialValues.side === 'SHORT' || initialValues.side === ('Short' as any)
+            ? 'SHORT'
+            : 'LONG'
+        );
+      }
+      if (typeof initialValues.entryPrice === 'number') setEntryPrice(initialValues.entryPrice);
+      if (typeof initialValues.stopLoss === 'number') setStopLoss(initialValues.stopLoss);
+      if (typeof initialValues.targetPrice === 'number') {
+        setTargetPrice(initialValues.targetPrice);
+        setExitPrice(initialValues.targetPrice);
+      }
+      if (initialValues.preEntryBias) setPreEntryBias(initialValues.preEntryBias);
+      if (initialValues.detectedConfluence) setConfluenceText(initialValues.detectedConfluence);
+    }
+  }, [initialValues]);
 
   // Real-Time Trade Calculus computation
   const calculus = useMemo(() => {
@@ -127,6 +169,12 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canAddTrade) {
+      if (onOpenSubscription) {
+        onOpenSubscription('pro', 'Free Starter Trial allows up to 3 trades. Upgrade to Pro Trader for unlimited journaling and institutional analytics.');
+      }
+      return;
+    }
     setIsSubmitting(true);
 
     const newTrade: Trade = {
@@ -164,6 +212,7 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
         : 'Clean Execution',
       detectedConfluence: confluenceText,
       screenshotUrl:
+        initialValues?.screenshotUrl ||
         'https://lh3.googleusercontent.com/aida-public/AB6AXuAdbmMnPxIL5nFL0q-08KArbG3w0XW7egW5sMo26TlEh16ntbQ8GTw9fW3F6pHM8XU2bxvVYJUQTkY3wi27GbHR3j68zDc_6JCYB3PvDaq5NbM8PRrzNRzY5-tlAIbHl5MfX_C101FGwwWcrYTkDhECiCqKZPC8hRl8hGf_K0rQ-PXrIq5TD-pqKEIWaAeJFNsgSF4GiHfST9uPxkoM2dXEAMMOoD8GmN6YZeRCTqVrOCfG4yJnrokwmQ',
     };
 
@@ -241,7 +290,7 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
           </div>
 
           {/* Quick Pill Presets */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar -mx-2 px-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar w-full">
             {presetSymbols.map((item) => {
               const isSelected = symbol === item.sym;
               return (
@@ -691,13 +740,36 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
                 <span className="material-symbols-outlined text-[14px] text-secondary">verified</span>
                 <span>15M {symbol}</span>
               </div>
-              <button
-                type="button"
-                title="Camera Snap or Attach Chart"
-                className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-surface-container-highest/90 text-on-surface hover:bg-surface-bright backdrop-blur-sm"
-              >
-                <span className="material-symbols-outlined text-[18px]">photo_camera</span>
-              </button>
+              {onOpenChartVision ? (
+                <button
+                  type="button"
+                  onClick={onOpenChartVision}
+                  title={`Scan Chart with AI Vision to Predict UP or DOWN (${isProOrHigher ? 'Unlimited Pro' : `${chartScansRemaining} free remaining`})`}
+                  className={`absolute bottom-2 right-2 px-3 py-1.5 rounded-lg font-tag-mono text-xs font-bold backdrop-blur-md flex items-center gap-1.5 shadow-lg active:scale-95 transition ${
+                    !canScanChart
+                      ? 'bg-amber-400 hover:bg-amber-300 text-black'
+                      : 'bg-cyan-400 hover:bg-cyan-300 text-black'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {!canScanChart ? 'lock' : 'auto_awesome'}
+                  </span>
+                  <span>AI Predict UP / DOWN</span>
+                  {!isProOrHigher && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/25">
+                      {canScanChart ? `${chartScansRemaining} left` : 'Pay'}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  title="Camera Snap or Attach Chart"
+                  className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-surface-container-highest/90 text-on-surface hover:bg-surface-bright backdrop-blur-sm"
+                >
+                  <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                </button>
+              )}
             </div>
 
             {/* Detected Visual Confluence Banner */}
@@ -737,12 +809,37 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
           </div>
         </section>
 
+        {/* Trial Limit Notice if Free and reached limit */}
+        {!canAddTrade && (
+          <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs space-y-2 mb-3">
+            <div className="flex items-center gap-2 font-bold text-amber-300">
+              <Crown className="w-4 h-4 text-amber-400" />
+              <span>Free Trial Limit Reached (3 / 3 Trades Logged)</span>
+            </div>
+            <p className="text-[11px] text-amber-200/90 leading-relaxed">
+              Trading Journal AI is a non-free professional platform. Upgrade to <strong>Pro Trader</strong> ($29/mo) or <strong>Institutional Desk</strong> ($99/mo) to unlock unlimited journaling.
+            </p>
+            <button
+              type="button"
+              onClick={() => onOpenSubscription && onOpenSubscription('pro', 'Unlock unlimited trade journaling.')}
+              className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-mono font-bold text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              <span>Upgrade to Pro Trader ($29/mo)</span>
+            </button>
+          </div>
+        )}
+
         {/* Big Action CTA Button */}
         <div className="w-full sticky bottom-4 z-20">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 px-4 rounded-xl bg-primary-container text-on-primary-container font-headline-sm text-headline-sm flex items-center justify-center gap-2.5 shadow-xl hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
+            className={`w-full py-3.5 px-4 rounded-xl font-headline-sm text-headline-sm flex items-center justify-center gap-2.5 shadow-xl transition-all ${
+              !canAddTrade
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                : 'bg-primary-container text-on-primary-container hover:brightness-110 active:scale-[0.98]'
+            } disabled:opacity-50`}
           >
             {isSubmitting ? (
               <>
@@ -750,6 +847,11 @@ export const LogTradeView: React.FC<LogTradeViewProps> = ({ onSaveTrade, onCance
                   progress_activity
                 </span>
                 <span>Auditing &amp; Saving Entry...</span>
+              </>
+            ) : !canAddTrade ? (
+              <>
+                <Crown className="w-5 h-5 text-amber-400" />
+                <span>Upgrade to Pro to Save Trade</span>
               </>
             ) : (
               <>

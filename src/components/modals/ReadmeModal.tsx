@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AppLogoIcon } from '../common/AppLogo';
 
 interface ReadmeModalProps {
   isOpen: boolean;
@@ -23,12 +24,10 @@ export const ReadmeModal: React.FC<ReadmeModalProps> = ({ isOpen, onClose }) => 
 
         {/* Modal Header */}
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary">
-            <span className="material-symbols-outlined text-[24px]">menu_book</span>
-          </div>
+          <AppLogoIcon size={42} className="shadow-lg shadow-cyan-950/40 shrink-0" />
           <div>
-            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">
-              Trading Journal AI · System Documentation
+            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold flex items-center gap-2">
+              Trading Journal <span className="px-1.5 py-0.2 rounded text-[10px] font-black tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">AI</span>
             </h3>
             <span className="font-tag-mono text-tag-mono text-primary uppercase font-bold">
               README.md · Institutional Terminal Edition
@@ -120,6 +119,22 @@ export const ReadmeModal: React.FC<ReadmeModalProps> = ({ isOpen, onClose }) => 
             <div className="p-2.5 rounded-lg bg-surface-container border border-surface-container-highest/30">
               <strong className="text-on-surface block font-medium">4. Behavioral AI Radar (Neural v4.2)</strong>
               <span>Overtrading pacing, revenge impulse tracking, early profit-taking alerts, and deep neural debriefs.</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-surface-container border border-surface-container-highest/30">
+              <strong className="text-on-surface block font-medium">5. 🔥 Firebase Auth &amp; Firestore Real-Time Persistence</strong>
+              <span>Google Sign-In integration with Firebase Authentication and persistent Firestore cloud storage for user trades and profiles.</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-surface-container border border-surface-container-highest/30">
+              <strong className="text-on-surface block font-medium">6. 📷 AI Chart Vision Analyzer (UP or DOWN Prediction)</strong>
+              <span>Multimodal neural vision inspecting uploaded or pasted candlestick charts, detecting patterns (breakouts, order blocks, wicks), calculating R:R levels, and giving a definitive UP or DOWN verdict.</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-surface-container border border-surface-container-highest/30">
+              <strong className="text-on-surface block font-medium">7. 🌐 Google Search Grounded Market Intel &amp; Multi-Turn Chatbot</strong>
+              <span>Real-time macro catalysts with verified web citations powered by Gemini 3.5 Flash Search Grounding, plus a multi-model psychological risk chatbot (Gemini 3.1 Pro / 3.5 Flash / 3.1 Flash-Lite).</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-surface-container border border-surface-container-highest/30">
+              <strong className="text-on-surface block font-medium">8. 💳 Institutional Monetization &amp; Paywall Engine (Non-Free Suite)</strong>
+              <span>Tiered subscription model (Free Trial 3-trade limit, Pro Trader $29/mo, Institutional Desk $99/mo). Complete with Stripe-style checkout, promo code discounting, cryptographic license provisioning, and feature gating.</span>
             </div>
           </div>
         )}

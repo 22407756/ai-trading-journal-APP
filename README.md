@@ -55,6 +55,56 @@ An institutional trading journal and behavioral audit platform built with React,
 - **Desktop Institutional Terminal**: Full-width multi-column desktop layout with sticky navigation, live session clocks (Asia, London, New York), benchmark overlays (S&P 500, BTC/USD), and active ledger tables.
 - Seamless toggle button in the top navigation bar to switch between Mobile and Desktop views at any time.
 
+### 7. 🔥 Firebase Auth & Firestore Persistence
+- **Google Sign-In**: Integrated with Firebase Authentication to securely identify traders.
+- **Real-Time Data Persistence**: User trade ledgers, profiles, and executions sync bidirectionally to Firestore under `/users/{uid}/trades/{tradeId}` with security rules enforcement (`firestore.rules`).
+
+### 8. 🎬 Veo 3 Video Generation
+- **Model**: `veo-3.1-fast-generate-preview`
+- **Aspect Ratio**: 16:9 widescreen (and 9:16 mobile).
+- **Functionality**: Synthesizes photorealistic cinematic trading floor simulations, holographic order book animations, and market environment videos directly from text prompts with real-time polling and MP4 download capability.
+
+### 9. 🌐 Google Search Grounded Market Intelligence
+- **Model**: `gemini-3.5-flash` with Google Search grounding tool (`googleSearch: {}`).
+- **Functionality**: Provides up-to-the-minute macroeconomic catalysts, CPI data, central bank rate probabilities, and asset earnings with clickable verified web citations and source domain attribution.
+
+### 10. 🤖 Multi-Turn Gemini Cognitive Chatbot
+- **Supported Models**:
+  - `gemini-3.1-pro-preview` (Complex psychological deconstruction & deep trade calculus)
+  - `gemini-3.5-flash` (General institutional risk advisory)
+  - `gemini-3.1-flash-lite` (High-speed rapid execution Q&A)
+- **Role**: Senior Risk Officer & Market Psychologist providing multi-turn feedback on emotional management, drawdowns, and stop-loss hygiene.
+
+### 11. 💳 Institutional Monetization & Subscription Engine (Non-Free Suite)
+- **Non-Free Commercial Architecture**:
+  - **Free Starter Trial**: Limited to 3 trades logged in the journal, preview mode for neural debriefs, and basic analytics overview.
+  - **Pro Trader Plan ($29/month or $279/year - Save 20%)**:
+    - Unlimited trade journaling
+    - Full Neural Behavioral Debriefs (v4.2)
+    - Google Search Grounded Market Intel
+    - Gemini Cognitive AI Chatbot
+    - Institutional CSV & PDF audit ledger exports
+  - **Institutional Desk Plan ($99/month or $899/year - Save 25%)**:
+    - All Pro features included
+    - Veo 3 Neural Video Engine (16:9 4K trading floor & depth chart animations)
+    - Gemini 3.1 Pro Cognitive AI reasoning
+    - Real-Time Desktop Terminal multi-monitor layout
+    - Interactive Brokers FIX 4.4 simulated socket feeds
+    - Priority 24/7 quant desk support & API license
+- **Stripe-Style Checkout & Licensing Modal (`SubscriptionModal`)**:
+  - Plan comparison with Monthly vs. Annual billing toggle
+  - Prop firm partner promo code engine (`ALPHA20`, `PROPFIRM50`, `VIPFREE`)
+  - Multi-payment support: Credit/Debit Cards, Apple Pay, Google Pay, and USDC Institutional Wire
+  - Real-time license key generation and cryptographic transaction receipt
+  - Bidirectional Firestore cloud synchronization under `/users/{uid}`
+- **Feature Paywalls & Gating**:
+  - Logging beyond 3 trades is gated with an upgrade prompt
+  - Veo 3 Video generation requires Institutional Desk
+  - Live Search Grounding requires Pro Trader or Institutional Desk
+  - Audit CSV/PDF exports require Pro Trader or Institutional Desk
+  - Active tier badges and upgrade CTAs integrated across Mobile & Desktop views
+
+
 ---
 
 ## 🎨 Design System

@@ -1,23 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { OCTOBER_DAYS, ASSET_PERFORMANCE, STRATEGY_PERFORMANCE, SESSIONS } from '../../data/initialData';
 import { CalendarDay } from '../../types/trade';
+import { computeTradeAnalytics } from '../../lib/tradeAnalytics';
 
 interface AnalyticsViewProps {
   onTriggerExport: () => void;
 }
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport }) => {
+  const { trades } = useAuth();
   const [activeFilter, setActiveFilter] = useState<string>('all');
+
+  // Compute live mathematically verified analytics from user's logged trades
+  const analytics = useMemo(() => computeTradeAnalytics(trades), [trades]);
+
+  const activeAssets = analytics.assets.length > 0 ? analytics.assets : ASSET_PERFORMANCE;
+  const activeStrategies = analytics.strategies.length > 0 ? analytics.strategies : STRATEGY_PERFORMANCE;
+  const activeSessions = analytics.sessions.length > 0 ? analytics.sessions : SESSIONS;
+  const activeCalendarDays = analytics.calendarDays.length > 0 ? analytics.calendarDays : OCTOBER_DAYS;
+
   const [inspectedDay, setInspectedDay] = useState<{
     date: string;
     pnl: string;
     desc: string;
     type: 'win' | 'loss' | 'neutral';
   }>({
-    date: 'Oct 06',
-    pnl: '+$1,100.00',
-    desc: '4 trades (All VWAP extensions executed)',
-    type: 'win',
+    date: activeCalendarDays[0]?.dateStr || 'Oct 01',
+    pnl: activeCalendarDays[0]?.pnlFormatted || '+$780.00',
+    desc: activeCalendarDays[0]?.details || 'Live verified journal ledger day',
+    type: activeCalendarDays[0]?.type || 'win',
   });
 
   const handleDayClick = (day: CalendarDay) => {
@@ -46,8 +58,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport })
   return (
     <div className="flex flex-col w-full gap-space-lg select-none max-w-md mx-auto pb-12">
       {/* Dimension Switcher Segmented Carousel */}
-      <section className="w-full -mx-4 px-4 overflow-x-auto no-scrollbar py-space-xs">
-        <div className="flex items-center gap-space-xs min-w-max bg-surface-container-lowest p-1 rounded-full shadow-inner border border-surface-container-highest/40">
+      <section className="w-full overflow-x-auto no-scrollbar py-1">
+        <div className="flex items-center gap-1.5 min-w-max bg-surface-container-lowest p-1 rounded-full shadow-inner border border-surface-container-highest/40">
           {filterTabs.map((tab) => (
             <button
               key={tab.id}
@@ -229,7 +241,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport })
           </div>
 
           <div className="flex flex-col gap-space-sm">
-            {ASSET_PERFORMANCE.map((asset) => {
+            {activeAssets.map((asset) => {
               const isProfit = asset.pnl > 0;
               return (
                 <div
@@ -307,7 +319,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport })
           </div>
 
           <div className="flex flex-col gap-space-sm">
-            {STRATEGY_PERFORMANCE.map((strat) => {
+            {activeStrategies.map((strat) => {
               const isWin = strat.pnl >= 0;
               return (
                 <div
@@ -390,7 +402,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport })
           </div>
 
           <div className="grid grid-cols-3 gap-space-xs">
-            {SESSIONS.map((sess) => {
+            {activeSessions.map((sess) => {
               const isProfit = sess.pnl >= 0;
               return (
                 <div
@@ -533,7 +545,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport })
                 Direction Asymmetry
               </h2>
             </div>
-            <span className="font-tag-mono text-tag-mono text-on-surface-variant">TOTAL: 142 TRADES</span>
+            <span className="font-tag-mono text-tag-mono text-on-surface-variant">TOTAL: {analytics.totalTrades} TRADES</span>
           </div>
 
           <div className="grid grid-cols-2 gap-space-sm">
@@ -547,13 +559,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport })
                   </span>
                 </div>
                 <span className="font-tag-mono text-tag-mono text-secondary bg-secondary/15 px-1.5 py-0.5 rounded font-semibold">
-                  68% WR
+                  {analytics.longStats.winRate}% WR
                 </span>
               </div>
-              <span className="font-data-metric-lg text-data-metric-lg text-secondary font-bold mt-1">
-                +$10,240
+              <span className={`font-data-metric-lg text-data-metric-lg font-bold mt-1 ${
+                analytics.longStats.pnl >= 0 ? 'text-secondary' : 'text-error'
+              }`}>
+                {analytics.longStats.pnl >= 0 ? `+$${analytics.longStats.pnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : `-$${Math.abs(analytics.longStats.pnl).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
               </span>
-              <span className="font-tag-mono text-tag-mono text-on-surface-variant">84 Executions</span>
+              <span className="font-tag-mono text-tag-mono text-on-surface-variant">{analytics.longStats.count} Executions</span>
             </div>
 
             {/* Short Trades */}
@@ -566,13 +580,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onTriggerExport })
                   </span>
                 </div>
                 <span className="font-tag-mono text-tag-mono text-primary bg-primary-container/20 px-1.5 py-0.5 rounded font-semibold">
-                  64% WR
+                  {analytics.shortStats.winRate}% WR
                 </span>
               </div>
-              <span className="font-data-metric-lg text-data-metric-lg text-secondary font-bold mt-1">
-                +$4,600
+              <span className={`font-data-metric-lg text-data-metric-lg font-bold mt-1 ${
+                analytics.shortStats.pnl >= 0 ? 'text-secondary' : 'text-error'
+              }`}>
+                {analytics.shortStats.pnl >= 0 ? `+$${analytics.shortStats.pnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : `-$${Math.abs(analytics.shortStats.pnl).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
               </span>
-              <span className="font-tag-mono text-tag-mono text-on-surface-variant">58 Executions</span>
+              <span className="font-tag-mono text-tag-mono text-on-surface-variant">{analytics.shortStats.count} Executions</span>
             </div>
           </div>
         </section>

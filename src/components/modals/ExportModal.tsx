@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Trade } from '../../types/trade';
+import { Trade, SubscriptionTier } from '../../types/trade';
+import { useAuth } from '../../context/AuthContext';
+import { Crown } from 'lucide-react';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   trades: Trade[];
+  onOpenSubscription?: (tier?: SubscriptionTier, reason?: string) => void;
 }
 
-export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, trades }) => {
+export const ExportModal: React.FC<ExportModalProps> = ({
+  isOpen,
+  onClose,
+  trades,
+  onOpenSubscription,
+}) => {
+  const { isProOrHigher } = useAuth();
   const [isCompiling, setIsCompiling] = useState(true);
 
   useEffect(() => {
@@ -181,23 +190,66 @@ Status: CRYPTOGRAPHICALLY AUDITED & SEALED
               records, cognitive bias journals, and realized R-multiples.
             </p>
 
+            {!isProOrHigher && (
+              <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-300">
+                  <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Pro Trader Subscription Required</span>
+                </div>
+                <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                  Institutional CSV &amp; PDF ledger audit exports require an active Pro Trader ($29/mo) or Institutional Desk ($99/mo) subscription.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenSubscription &&
+                    onOpenSubscription('pro', 'Unlock institutional ledger exports.')
+                  }
+                  className="w-full py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-black font-mono font-bold text-xs shadow transition active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>Upgrade to Pro Trader ($29/mo)</span>
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2 mt-2">
               <button
                 type="button"
-                onClick={downloadCSV}
-                className="py-2.5 px-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-tag-mono text-tag-mono font-semibold flex items-center justify-center gap-1.5 transition-colors border border-surface-container-highest/40"
+                onClick={() => {
+                  if (!isProOrHigher) {
+                    if (onOpenSubscription) onOpenSubscription('pro', 'Institutional CSV export requires Pro Trader.');
+                    return;
+                  }
+                  downloadCSV();
+                }}
+                className={`py-2.5 px-3 rounded-lg font-tag-mono text-tag-mono font-semibold flex items-center justify-center gap-1.5 transition-colors border ${
+                  !isProOrHigher
+                    ? 'bg-surface-container text-outline border-surface-container-highest/20 cursor-pointer'
+                    : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface border-surface-container-highest/40'
+                }`}
               >
                 <span className="material-symbols-outlined text-[18px]">table_view</span>
-                <span>Download CSV</span>
+                <span>Download CSV {!isProOrHigher && '(PRO)'}</span>
               </button>
 
               <button
                 type="button"
-                onClick={downloadReport}
-                className="py-2.5 px-3 rounded-lg bg-primary-container hover:brightness-110 text-on-primary-container font-tag-mono text-tag-mono font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                onClick={() => {
+                  if (!isProOrHigher) {
+                    if (onOpenSubscription) onOpenSubscription('pro', 'Institutional Audit PDF export requires Pro Trader.');
+                    return;
+                  }
+                  downloadReport();
+                }}
+                className={`py-2.5 px-3 rounded-lg font-tag-mono text-tag-mono font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm ${
+                  !isProOrHigher
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-primary-container hover:brightness-110 text-on-primary-container'
+                }`}
               >
                 <span className="material-symbols-outlined text-[18px]">download</span>
-                <span>Audit PDF / TXT</span>
+                <span>Audit PDF / TXT {!isProOrHigher && '(PRO)'}</span>
               </button>
             </div>
           </div>

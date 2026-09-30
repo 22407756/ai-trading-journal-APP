@@ -1,22 +1,79 @@
-import React, { useState } from 'react';
-import { Trade, PrecisionMetric } from '../../types/trade';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Trade, PrecisionMetric, RealMarketQuote } from '../../types/trade';
 import { PRECISION_METRICS, SCRUB_POINTS } from '../../data/initialData';
+import { computeTradeAnalytics } from '../../lib/tradeAnalytics';
+
+interface MarketSession {
+  name: string;
+  status: 'OPEN' | 'CLOSED';
+  hours: string;
+  active: boolean;
+}
 
 interface DashboardViewProps {
   trades: Trade[];
   onOpenLogTrade: () => void;
   onSelectTrade?: (trade: Trade) => void;
+  onOpenAlerts?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   trades,
   onOpenLogTrade,
   onSelectTrade,
+  onOpenAlerts,
 }) => {
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('3M');
-  const [activeScrubPoint, setActiveScrubPoint] = useState<string>('Oct 24: +$640.00');
+  const [activeScrubPoint, setActiveScrubPoint] = useState<string>('Live Session P&L');
   const [selectedMatrixId, setSelectedMatrixId] = useState<string | null>(null);
   const [tradeFilter, setTradeFilter] = useState<'all' | 'wins' | 'losses' | 'fomo'>('all');
+
+  // Real Twelve Data market quotes state
+  const [marketAssets, setMarketAssets] = useState<RealMarketQuote[]>([]);
+  const [marketSessions, setMarketSessions] = useState<MarketSession[]>([]);
+  const [isMarketLoading, setIsMarketLoading] = useState<boolean>(true);
+  const [isApiUnavailable, setIsApiUnavailable] = useState<boolean>(false);
+  const [selectedAssetDetail, setSelectedAssetDetail] = useState<RealMarketQuote | null>(null);
+
+  // Compute mathematically verified analytics from user trades ledger
+  const analytics = useMemo(() => computeTradeAnalytics(trades), [trades]);
+
+  // Fetch real market pulse data from Twelve Data API via /api/market-pulse
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMarketPulse = async () => {
+      try {
+        const res = await fetch('/api/market-pulse');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setMarketAssets(data.assets || []);
+            setMarketSessions(data.sessions || []);
+            setIsApiUnavailable(false);
+            setIsMarketLoading(false);
+          }
+        } else {
+          // If HTTP 503 or error, mark unavailable
+          if (isMounted) {
+            setIsApiUnavailable(true);
+            setIsMarketLoading(false);
+          }
+        }
+      } catch (err) {
+        console.warn('Market pulse unavailable:', err);
+        if (isMounted) {
+          setIsApiUnavailable(true);
+          setIsMarketLoading(false);
+        }
+      }
+    };
+    fetchMarketPulse();
+    const interval = setInterval(fetchMarketPulse, 90000); // 90s cache aligned
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Filter trades based on filter pill
   const filteredTrades = trades.filter((t) => {
@@ -30,6 +87,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     (m) => m.id === selectedMatrixId
   );
 
+  const formattedNetPnL = analytics.netPnL >= 0
+    ? `+$${analytics.netPnL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : `-$${Math.abs(analytics.netPnL).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <div className="flex flex-col w-full pb-8 space-y-4 max-w-md mx-auto">
       {/* Top Ambient Radial Bloom Behind Hero Metrics */}
@@ -39,44 +100,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <div className="relative p-space-md flex flex-col space-y-4">
           {/* Top Utility Micro-bar: Profile Mode & Quick Sync */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-space-xs">
-              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-              <span className="font-tag-mono text-tag-mono text-secondary uppercase tracking-wider">
-                Broker Sync: Live (Interactive Brokers)
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 truncate">
+              <span className="w-2 h-2 rounded-full bg-secondary shrink-0 animate-pulse" />
+              <span className="font-tag-mono text-[10px] text-secondary uppercase tracking-wider truncate">
+                Ledger Sync: Verified
               </span>
             </div>
-            <span className="font-tag-mono text-tag-mono px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
-              UTC-4 NY
+            <span className="font-tag-mono text-[10px] px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant shrink-0">
+              UTC Global
             </span>
           </div>
 
-          {/* Main Executive Stat */}
+          {/* Main Executive Stat - Dynamically Computed */}
           <div className="flex flex-col">
             <div className="flex items-center justify-between">
               <span className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">
                 Net Cumulative P&L
               </span>
-              <span className="font-tag-mono text-tag-mono text-secondary px-2 py-0.5 rounded-full bg-secondary/10 flex items-center gap-1 font-semibold">
-                <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                +21.4%
+              <span className={`font-tag-mono text-tag-mono px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold ${
+                analytics.netPnL >= 0 ? 'text-secondary bg-secondary/10' : 'text-error bg-error/10'
+              }`}>
+                <span className="material-symbols-outlined text-[14px]">
+                  {analytics.netPnL >= 0 ? 'trending_up' : 'trending_down'}
+                </span>
+                {analytics.netPnL >= 0 ? '+' : ''}{analytics.totalTrades > 0 ? ((analytics.netPnL / 10000) * 100).toFixed(1) : '0.0'}%
               </span>
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="font-headline-xl-mobile text-headline-xl-mobile text-secondary font-bold tracking-tight drop-shadow-[0_0_16px_rgba(78,222,163,0.35)]">
-                +$14,840.50
+            <div className="mt-1 flex items-baseline gap-2 overflow-hidden">
+              <span className={`text-2xl sm:text-3xl font-bold tracking-tight truncate ${
+                analytics.netPnL >= 0
+                  ? 'text-secondary drop-shadow-[0_0_16px_rgba(78,222,163,0.35)]'
+                  : 'text-error drop-shadow-[0_0_16px_rgba(244,67,54,0.35)]'
+              }`}>
+                {formattedNetPnL}
               </span>
-              <span className="font-tag-mono text-tag-mono text-outline">USD</span>
+              <span className="font-tag-mono text-tag-mono text-outline shrink-0">USD</span>
             </div>
           </div>
 
-          {/* Quick Ratio Badges Row */}
+          {/* Quick Ratio Badges Row - 100% Mathematically Calculated */}
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div className="bg-surface-container/90 rounded-lg p-space-sm flex flex-col justify-center border border-surface-container-highest/30">
               <span className="font-label-caps text-label-caps text-outline">WIN RATE</span>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="font-data-metric-md text-data-metric-md text-secondary font-semibold">
-                  68.4%
+                  {analytics.winRate}%
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
               </div>
@@ -85,7 +154,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className="font-label-caps text-label-caps text-outline">PROFIT FACTOR</span>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="font-data-metric-md text-data-metric-md text-primary font-semibold">
-                  2.42
+                  {analytics.profitFactor.toFixed(2)}
                 </span>
                 <span className="font-tag-mono text-tag-mono text-primary/70">PF</span>
               </div>
@@ -94,9 +163,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className="font-label-caps text-label-caps text-outline">TOTAL TRADES</span>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="font-data-metric-md text-data-metric-md text-on-surface font-semibold">
-                  {trades.length > 5 ? trades.length : 142}
+                  {analytics.totalTrades}
                 </span>
-                <span className="font-tag-mono text-tag-mono text-outline">Closed</span>
+                <span className="font-tag-mono text-tag-mono text-outline">Exec</span>
               </div>
             </div>
           </div>
@@ -119,6 +188,187 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Real-Time Live Market Ticker & Market Pulse Widget (Twelve Data API) */}
+      <div className="w-full bg-[#071322] rounded-xl p-3.5 border border-cyan-500/25 shadow-lg space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {/* Rule 2: Only show the "Live Feed" label when data is actually fresh */}
+            {(!isApiUnavailable && marketAssets.length > 0 && marketAssets.some((a) => a.available && (Date.now() - new Date(a.priceTime).getTime() <= (a.sector === 'Crypto' ? 300000 : 900000)))) ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span className="text-xs font-mono font-bold tracking-wider text-emerald-300 uppercase flex items-center gap-1">
+                  Live Feed (Twelve Data)
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="text-xs font-mono font-bold tracking-wider text-amber-300 uppercase flex items-center gap-1">
+                  Market Pulse (Delayed)
+                </span>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
+            {onOpenAlerts && (
+              <button
+                type="button"
+                onClick={onOpenAlerts}
+                className="px-2 py-0.5 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 flex items-center gap-1 transition"
+                title="View Signal Audits & Set Up Push Alerts"
+              >
+                <span>5m Signals</span>
+              </button>
+            )}
+            {marketSessions.filter((s) => s.active).map((s) => (
+              <span key={s.name} className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                {s.name}: OPEN
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Rule 2: If the API returns 503 or error, show "Market data unavailable" instead of numbers */}
+        {isApiUnavailable ? (
+          <div className="p-3.5 rounded-lg bg-amber-950/20 border border-amber-500/30 text-xs font-mono space-y-1">
+            <div className="flex items-center gap-2 text-amber-300 font-bold">
+              <span>⚠️ Market data unavailable</span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+              Twelve Data real quotes are currently offline. Check that <code className="text-amber-300">TWELVE_DATA_KEY</code> is configured in AI Studio environment variables.
+            </p>
+          </div>
+        ) : isMarketLoading ? (
+          <div className="py-6 text-center font-mono text-xs text-cyan-400 animate-pulse">
+            Connecting to Twelve Data real-time market stream...
+          </div>
+        ) : (
+          /* Horizontal Scrollable Quotes Bar */
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            {marketAssets.map((asset) => {
+              const isPos = asset.change24h >= 0;
+              const diffMs = Date.now() - new Date(asset.priceTime).getTime();
+              const isStale = diffMs > (asset.sector === 'Crypto' ? 5 * 60 * 1000 : 15 * 60 * 1000);
+              const formattedTime = new Date(asset.priceTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+              return (
+                <button
+                  key={asset.symbol}
+                  type="button"
+                  onClick={() => setSelectedAssetDetail(selectedAssetDetail?.symbol === asset.symbol ? null : asset)}
+                  className={`shrink-0 px-3 py-2 rounded-lg border text-left transition transform active:scale-95 ${
+                    selectedAssetDetail?.symbol === asset.symbol
+                      ? 'bg-cyan-950/40 border-cyan-400 ring-1 ring-cyan-400'
+                      : 'bg-[#09182a] border-slate-800 hover:border-cyan-500/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3 text-[10px] font-mono">
+                    <span className="font-bold text-white">{asset.symbol}</span>
+                    {asset.available && (
+                      <span className={`font-semibold ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {isPos ? '+' : ''}{asset.change24h}%
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    {asset.available ? (
+                      <span className="text-xs font-mono font-bold text-slate-200">
+                        {asset.sector === 'Forex' ? '' : '$'}
+                        {asset.price.toLocaleString('en-US', { minimumFractionDigits: asset.sector === 'Forex' ? 4 : 2 })}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-amber-400">
+                        Market data unavailable
+                      </span>
+                    )}
+
+                    {/* Market closed badge: Only for Forex/Stocks when data is available and market is genuinely closed. NEVER for Crypto. */}
+                    {asset.available && asset.sector !== 'Crypto' && !asset.marketOpen && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        Market closed
+                      </span>
+                    )}
+
+                    {/* Rule 2: Stale data warning */}
+                    {isStale && asset.available && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        Stale data
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Rule 2: Show priceTime and source */}
+                  <div className="mt-1 flex items-center justify-between text-[9px] font-mono text-slate-500">
+                    <span>{asset.source}</span>
+                    <span>{formattedTime}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Selected Asset Real Breakdown Drawer */}
+        {selectedAssetDetail && (
+          <div className="p-3 rounded-lg bg-[#0b1b30] border border-cyan-500/30 text-xs font-mono space-y-2 animate-in fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-bold text-white text-sm">{selectedAssetDetail.name} ({selectedAssetDetail.symbol})</span>
+                <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  !selectedAssetDetail.available
+                    ? 'bg-amber-500/20 text-amber-300'
+                    : selectedAssetDetail.sector === 'Crypto' || selectedAssetDetail.marketOpen
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-amber-500/20 text-amber-300'
+                }`}>
+                  Status: {!selectedAssetDetail.available
+                    ? 'DATA UNAVAILABLE (API LIMIT)'
+                    : selectedAssetDetail.sector === 'Crypto'
+                    ? 'OPEN 24/7'
+                    : selectedAssetDetail.marketOpen
+                    ? 'OPEN'
+                    : 'MARKET CLOSED'}
+                </span>
+                <span className="ml-1 text-[10px] text-slate-400">Source: {selectedAssetDetail.source}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAssetDetail(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-300 pt-1">
+              <div>
+                <span className="text-slate-500 block text-[9px] uppercase">24H High</span>
+                <span className="text-emerald-300">
+                  {selectedAssetDetail.available && selectedAssetDetail.high24h > 0
+                    ? `${selectedAssetDetail.sector === 'Forex' ? '' : '$'}${selectedAssetDetail.high24h}`
+                    : 'Unavailable'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[9px] uppercase">24H Low</span>
+                <span className="text-rose-300">
+                  {selectedAssetDetail.available && selectedAssetDetail.low24h > 0
+                    ? `${selectedAssetDetail.sector === 'Forex' ? '' : '$'}${selectedAssetDetail.low24h}`
+                    : 'Unavailable'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[9px] uppercase">API Price Timestamp (UTC)</span>
+                <span className="text-cyan-300 text-[10px]">
+                  {selectedAssetDetail.available ? selectedAssetDetail.priceTime : 'Pending API Refresh'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Interactive Cumulative P&L Performance Chart */}

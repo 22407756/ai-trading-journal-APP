@@ -68,6 +68,13 @@
     background-color: #051424;
     color: #d4e4fa;
     font-family: "Inter", sans-serif;
+    overflow-x: hidden;
+  }
+  
+  #root {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
   }
   
   body {
@@ -81,6 +88,16 @@
   
   .pt-safe {
     padding-top: max(env(safe-area-inset-top, 0px), 8px);
+  }
+
+  /* Smooth touch momentum scrolling for horizontal containers */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
